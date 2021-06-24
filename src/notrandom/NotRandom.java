@@ -1,4 +1,4 @@
-package method_one;
+package notrandom;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -119,7 +119,7 @@ public class NotRandom {
 	 * Filter the seeds for all seeds which produce nextInt. (should just be 1
 	 * possibility for 2 integers).
 	 */
-	private static List<Long> filterSeeds(List<Long> seeds, int nextInt) {
+	protected static List<Long> filterSeeds(List<Long> seeds, int nextInt) {
 		return seeds.stream().flatMap(oldseed -> {
 			// Simply perform Random::nextInt on the potential seed and see if the numbers
 			// match.
