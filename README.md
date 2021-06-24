@@ -1,5 +1,5 @@
 # java.util.Random-cracker
-A program which demonstrates the insecurities of java.util.Random. A single randomly generated 64-bit long is enough to determine the random object's current state and predict every future output.
+A program which demonstrates the insecurities of java.util.Random. A single randomly generated 64-bit long is enough to determine the random object's current state and predict every future output. Alternativly, two 32-bit integers or a 64-bit double (only 53-bits are randomly generated) can be used to determine the seed and clone the random number generator.
 
 ## Sample Runs
 ### NotRandom.java
