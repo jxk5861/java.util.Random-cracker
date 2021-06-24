@@ -1,3 +1,4 @@
+package method_one;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -8,12 +9,29 @@ import java.util.concurrent.atomic.AtomicLong;
  * how it works. Many of the methods are unused and just included for reference.
  */
 public class NotRandom {
-	private static final long multiplier = 0x5DEECE66DL;
-	private static final long addend = 0xBL;
-	private static final long mask = (1L << 48) - 1;
+	protected static final long multiplier = 0x5DEECE66DL;
+	protected static final long addend = 0xBL;
+	protected static final long mask = (1L << 48) - 1;
 
-	private AtomicLong seed;
+	protected AtomicLong seed;
+	private static final AtomicLong seedUniquifier = new AtomicLong(8682522807148012L);
+	
+	
+	public NotRandom() {
+        this(seedUniquifier() ^ System.nanoTime());
+    }
 
+    private static long seedUniquifier() {
+        // L'Ecuyer, "Tables of Linear Congruential Generators of
+        // Different Sizes and Good Lattice Structure", 1999
+        for (;;) {
+            long current = seedUniquifier.get();
+            long next = current * 1181783497276652981L;
+            if (seedUniquifier.compareAndSet(current, next))
+                return next;
+        }
+    }
+	
 	public NotRandom(long seed) {
 		this.seed = new AtomicLong(initialScramble(seed));
 	}
@@ -31,7 +49,7 @@ public class NotRandom {
 		}
 	}
 
-	private static long initialScramble(long seed) {
+	protected static long initialScramble(long seed) {
 		return (seed ^ multiplier) & mask;
 	}
 
@@ -97,7 +115,7 @@ public class NotRandom {
 
 	/**
 	 * Filter the seeds for all seeds which produce nextInt. (should just be 1
-	 * possibility).
+	 * possibility for 2 integers).
 	 */
 	private static List<Long> nextSeeds(List<Long> seeds, int nextInt) {
 		List<Long> possible = new ArrayList<>();
@@ -125,6 +143,7 @@ public class NotRandom {
 	 * multiple potential seeds, in which -1 is returned.
 	 */
 	private static long getSeed(long gen) {
+		// First we need to break the long into its two integer parts.
 		int back = (int) (gen);
 		int front = (int) ((gen - back) >> 32);
 
