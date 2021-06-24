@@ -5,15 +5,74 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * The NotRandom class is just a rough copy of java.util.Random for explaining
- * how it works.
+ * how it works. Many of the methods are unused and just included for reference.
  */
 public class NotRandom {
-
 	private static final long multiplier = 0x5DEECE66DL;
 	private static final long addend = 0xBL;
-
 	private static final long mask = (1L << 48) - 1;
-	
+
+	private AtomicLong seed;
+
+	public NotRandom(long seed) {
+		this.seed = new AtomicLong(initialScramble(seed));
+	}
+
+	// Calling java.util.Random(seed) will cause the seed to be scrambled before
+	// this.seed is set.
+	// This disables that functionality
+	// (also, initialScramble(initialScramble(seed)) = seed assuming seed is at most
+	// 48 bits long) because of xor
+	public NotRandom(long seed, boolean scramble) {
+		if (scramble) {
+			this.seed = new AtomicLong(initialScramble(seed));
+		} else {
+			this.seed = new AtomicLong(seed);
+		}
+	}
+
+	private static long initialScramble(long seed) {
+		return (seed ^ multiplier) & mask;
+	}
+
+	public AtomicLong getSeed() {
+		return seed;
+	}
+
+	public int nextInt() {
+		return next(32);
+	}
+
+	public long nextLong() {
+		// Make a long from two integers.
+
+		// Keep in mind if i1 = 0xaaaaaaaa and i2 = 0xbbbbbbbb
+		// the result is not necessarily 0xaaaaaaaabbbbbbbb. (important for reversing
+		// this step).
+		return ((long) (next(32)) << 32) + next(32);
+	}
+
+	/**
+	 * Return up to 32 bits of pseudo-random information.
+	 */
+	protected int next(int bits) {
+		long oldseed, nextseed;
+		AtomicLong seed = this.seed;
+
+		// usually runs once
+		do {
+			oldseed = seed.get();
+			nextseed = (oldseed * multiplier + addend) & mask;
+		} while (!seed.compareAndSet(oldseed, nextseed));
+
+		// The most important part of reversing this algorithm.
+		// Notice that the random integer is derived from nextseed.
+		// Depending on the size of bits, there are 2^(48 - bits) possibilities for the
+		// value of the seed.
+		// In the case of an integer, this is only 65536!
+		return (int) (nextseed >>> (48 - bits));
+	}
+
 	/**
 	 * Return all 65536 possible seeds for a given 32-bit integer.
 	 */
@@ -26,7 +85,7 @@ public class NotRandom {
 		// The last 16 bits can be guessed since 2^16 is only 65536.
 		// seed = 0b10000001000110000100010010011111????????????????
 		long front = ((long) (integer) << 16) & mask;
-		
+
 		// The last 16 bits of the seed are all 0, so numbers from 0 to
 		// 0b1111111111111111 are added to find every possible seed
 		for (int i = 0; i < 1 << 16; i++) {
@@ -95,66 +154,5 @@ public class NotRandom {
 		for (int i = 0; i < 5; i++) {
 			System.out.printf("%11d %11d\r\n", random.nextInt(), cloned.nextInt());
 		}
-	}
-	
-	private AtomicLong seed;
-
-	public NotRandom(long seed) {
-		this.seed = new AtomicLong(initialScramble(seed));
-	}
-
-	// Calling java.util.Random(seed) will cause the seed to be scrambled before
-	// this.seed is set.
-	// This disables that functionality
-	// (also, initialScramble(initialScramble(seed)) = seed assuming seed is at most
-	// 48 bits long) because of xor
-	public NotRandom(long seed, boolean scramble) {
-		if (scramble) {
-			this.seed = new AtomicLong(initialScramble(seed));
-		} else {
-			this.seed = new AtomicLong(seed);
-		}
-	}
-
-	private static long initialScramble(long seed) {
-		return (seed ^ multiplier) & mask;
-	}
-
-	public AtomicLong getSeed() {
-		return seed;
-	}
-
-	public int nextInt() {
-		return next(32);
-	}
-
-	public long nextLong() {
-		// Make a long from two integers.
-
-		// Keep in mind if i1 = 0xaaaaaaaa and i2 = 0xbbbbbbbb
-		// the result is not necessarily 0xaaaaaaaabbbbbbbb. (important for reversing
-		// this step).
-		return ((long) (next(32)) << 32) + next(32);
-	}
-
-	/**
-	 * Return up to 32 bits of pseudo-random information.
-	 */
-	protected int next(int bits) {
-		long oldseed, nextseed;
-		AtomicLong seed = this.seed;
-
-		// usually runs once
-		do {
-			oldseed = seed.get();
-			nextseed = (oldseed * multiplier + addend) & mask;
-		} while (!seed.compareAndSet(oldseed, nextseed));
-
-		// The most important part of reversing this algorithm.
-		// Notice that the random integer is derived from nextseed.
-		// Depending on the size of bits, there are 2^(48 - bits) possibilities for the
-		// value of the seed.
-		// In the case of an integer, this is only 65536!
-		return (int) (nextseed >>> (48 - bits));
 	}
 }
