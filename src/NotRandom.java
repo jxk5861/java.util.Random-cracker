@@ -24,11 +24,11 @@ public class NotRandom {
 		// The integer 0b10000001000110000100010010011111 has the 32 starting bits of
 		// the 48 bit seed.
 		// The last 16 bits can be guessed since 2^16 is only 65536.
-		// seed = 0bAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA???????????????? where the A's are
-		// known
+		// seed = 0b10000001000110000100010010011111????????????????
 		long front = ((long) (integer) << 16) & mask;
+		
 		// The last 16 bits of the seed are all 0, so numbers from 0 to
-		// 0b1111111111111111 are added to find every possbile seed
+		// 0b1111111111111111 are added to find every possible seed
 		for (int i = 0; i < 1 << 16; i++) {
 			seeds.add(front + i);
 		}
