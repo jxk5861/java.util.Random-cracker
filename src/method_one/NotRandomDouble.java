@@ -3,6 +3,8 @@ package method_one;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class NotRandomDouble extends NotRandom {
 	private static final double DOUBLE_UNIT = 0x1.0p-53; // 1.0 / (1L << 53)
@@ -62,6 +64,35 @@ public class NotRandomDouble extends NotRandom {
 	}
 
 	/**
+	 * Filter a list of seeds to see which generates the double.
+	 */
+	public static List<Long> filterSeeds(List<Long> seeds, double d) {
+		d = d / DOUBLE_UNIT;
+		long gen = (long) d;
+
+		int nextInt1 = (int) (gen >> 27);
+		int nextInt2 = (int) (gen & ((1 << 27) - 1));
+
+		return seeds.stream().flatMap(oldseed -> {
+			long nextseed = (oldseed * multiplier + addend) & mask;
+			int nextInt = (int) (nextseed >>> (48 - 26));
+
+			if (nextInt == nextInt1) {
+				return Stream.of(nextseed);
+			}
+			return Stream.empty();
+		}).flatMap(oldseed -> {
+			long nextseed = (oldseed * multiplier + addend) & mask;
+			int nextInt = (int) (nextseed >>> (48 - 27));
+
+			if (nextInt == nextInt2) {
+				return Stream.of(nextseed);
+			}
+			return Stream.empty();
+		}).collect(Collectors.toList());
+	}
+
+	/**
 	 * Attempt to generate a seed from a single double.
 	 */
 	private static long getSeed(double gen) {
@@ -87,7 +118,10 @@ public class NotRandomDouble extends NotRandom {
 		Random cloned = new Random(scrambledSeed);
 		System.out.println("Cloning random...\r\n");
 
+//		System.out.println(filterSeeds(List.of(initialScramble(scrambledSeed)), random.nextDouble()));
+
 		System.out.printf("%11s %11s\r\n", "Random", "Cloned");
+
 		for (int i = 0; i < 5; i++) {
 			System.out.printf("%11f %11f\r\n", random.nextDouble(), cloned.nextDouble());
 		}

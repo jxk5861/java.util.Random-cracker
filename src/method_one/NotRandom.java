@@ -1,8 +1,11 @@
 package method_one;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The NotRandom class is just a rough copy of java.util.Random for explaining
@@ -15,23 +18,22 @@ public class NotRandom {
 
 	protected AtomicLong seed;
 	private static final AtomicLong seedUniquifier = new AtomicLong(8682522807148012L);
-	
-	
-	public NotRandom() {
-        this(seedUniquifier() ^ System.nanoTime());
-    }
 
-    private static long seedUniquifier() {
-        // L'Ecuyer, "Tables of Linear Congruential Generators of
-        // Different Sizes and Good Lattice Structure", 1999
-        for (;;) {
-            long current = seedUniquifier.get();
-            long next = current * 1181783497276652981L;
-            if (seedUniquifier.compareAndSet(current, next))
-                return next;
-        }
-    }
-	
+	public NotRandom() {
+		this(seedUniquifier() ^ System.nanoTime());
+	}
+
+	private static long seedUniquifier() {
+		// L'Ecuyer, "Tables of Linear Congruential Generators of
+		// Different Sizes and Good Lattice Structure", 1999
+		for (;;) {
+			long current = seedUniquifier.get();
+			long next = current * 1181783497276652981L;
+			if (seedUniquifier.compareAndSet(current, next))
+				return next;
+		}
+	}
+
 	public NotRandom(long seed) {
 		this.seed = new AtomicLong(initialScramble(seed));
 	}
@@ -117,10 +119,8 @@ public class NotRandom {
 	 * Filter the seeds for all seeds which produce nextInt. (should just be 1
 	 * possibility for 2 integers).
 	 */
-	private static List<Long> nextSeeds(List<Long> seeds, int nextInt) {
-		List<Long> possible = new ArrayList<>();
-
-		for (Long oldseed : seeds) {
+	private static List<Long> filterSeeds(List<Long> seeds, int nextInt) {
+		return seeds.stream().flatMap(oldseed -> {
 			// Simply perform Random::nextInt on the potential seed and see if the numbers
 			// match.
 
@@ -128,13 +128,13 @@ public class NotRandom {
 			long nextseed = (oldseed * multiplier + addend) & mask;
 			// Then generate the next integer from the seed's first 32 bits.
 			int nextInt2 = (int) (nextseed >>> (48 - 32));
+			
 			// If there is a match we have found a potential seed.
 			if (nextInt == nextInt2) {
-				possible.add(nextseed);
+				return Stream.of(nextseed);
 			}
-		}
-
-		return possible;
+			return Stream.empty();
+		}).collect(Collectors.toList());
 	}
 
 	/**
@@ -148,7 +148,7 @@ public class NotRandom {
 		int front = (int) ((gen - back) >> 32);
 
 		List<Long> seeds = possibleSeeds(front);
-		seeds = nextSeeds(seeds, back);
+		seeds = filterSeeds(seeds, back);
 
 		if (seeds.size() == 1) {
 			return initialScramble(seeds.get(0));
